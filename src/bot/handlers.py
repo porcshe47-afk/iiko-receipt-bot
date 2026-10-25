@@ -17,13 +17,13 @@ async def cmd_start(message: Message, bot: Bot):
     try:
         await bot.set_chat_menu_button(
             chat_id=message.chat.id,
-            menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url=f"{settings.BASE_URL}/webapp"))
+            menu_button=MenuButtonWebApp(text="Открыть", web_app=WebAppInfo(url="https://iiko-receipt-bot.pages.dev"))
         )
     except Exception as e:
         logger.error(f"Failed to set menu button: {e}")
 
     kb = [
-        [KeyboardButton(text="Открыть приложение", web_app=WebAppInfo(url=f"{settings.BASE_URL}/webapp"))]
+        [KeyboardButton(text="Открыть приложение", web_app=WebAppInfo(url="https://iiko-receipt-bot.pages.dev"))]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
     

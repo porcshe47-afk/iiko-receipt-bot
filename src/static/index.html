@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Приход накладной в iiko</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #f4f4f6);
+            --text-color: var(--tg-theme-text-color, #222);
+            --hint-color: var(--tg-theme-hint-color, #888);
+            --button-color: var(--tg-theme-button-color, #2481cc);
+            --button-text-color: var(--tg-theme-button-text-color, #fff);
+            --card-bg: var(--tg-theme-secondary-bg-color, #fff);
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 12px;
+            padding-bottom: 90px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* Upload Screen Styles */
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .upload-btn {
+            background: var(--card-bg);
+            border: 2px dashed var(--button-color);
+            color: var(--button-color);
+            border-radius: 12px;
+            padding: 18px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:active {
+            background: rgba(36, 129, 204, 0.1);
+        }
+
+        .upload-btn.primary {
+            background: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Form & Items Styles */
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--hint-color);
+            margin-bottom: 4px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .item-row {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .item-name {
+            font-weight: 500;
+            font-size: 14px;
+            flex: 1;
+            margin-right: 8px;
+        }
+
+        .item-calc {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .item-error {
+            font-size: 12px;
+            color: var(--danger-color);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .item-details {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .item-details select {
+            flex: 1;
+            font-size: 13px;
+            padding: 6px;
+        }
+
+        .item-details select.error-border {
+            border-color: var(--danger-color);
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+
+        .item-details input {
+            width: 70px;
+            font-size: 13px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        /* Footer & Confirm Button */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            padding: 12px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .total-sum {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .btn-confirm {
+            background-color: var(--success-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 600;
+            flex: 1;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-confirm:active {
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--hint-color);
+            font-size: 15px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0,0,0,0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--button-color);
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Начальный экран: Кнопки добавления -->
+        <div class="card">
+            <h2>Загрузка документа</h2>
+            <p style="font-size: 13px; color: var(--hint-color); margin-bottom: 12px;">
+                Выберите способ загрузки накладной, чека или счета для распознавания и сверки с iiko.
+            </p>
+            <div class="upload-container">
+                <button class="upload-btn primary" onclick="triggerCamera()">
+                    📸 Сделать фото
+                </button>
+                <button class="upload-btn" onclick="triggerGallery()">
+                    🖼️ Добавить фото из галереи
+                </button>
+                <button class="upload-btn" onclick="triggerFile()">
+                    📁 Добавить файл (PDF / Документ)
+                </button>
+            </div>
+        </div>
+
+        <!-- Скрытые инпуты для загрузки -->
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelected(event)">
+        <input type="file" id="galleryInput" accept="image/*" onchange="handleFileSelected(event)">
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" onchange="handleFileSelected(event)">
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let sessionId = urlParams.get('session_id');
+
+        let appData = null;
+
+        function triggerCamera() {
+            document.getElementById('cameraInput').click();
+        }
+
+        function triggerGallery() {
+            document.getElementById('galleryInput').click();
+        }
+
+        function triggerFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        async function handleFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoading("Распознаем документ с помощью ИИ и сверяем с iiko...");
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Bypass-Tunnel-Reminder': 'true' },
+                    body: formData
+                });
+
+                const res = await response.json();
+                if (response.ok) {
+                    sessionId = res.session_id;
+                    await loadSessionData(sessionId);
+                } else {
+                    alert('Ошибка распознавания: ' + (res.detail || 'Не удалось обработать файл'));
+                    resetToUploadScreen();
+                }
+            } catch (e) {
+                alert('Ошибка сети: ' + e.message);
+                resetToUploadScreen();
+            }
+        }
+
+        function showLoading(text) {
+            document.getElementById('app').innerHTML = `
+                <div class="card loading">
+                    <div class="spinner"></div>
+                    <div>${text}</div>
+                </div>
+            `;
+        }
+
+        function resetToUploadScreen() {
+            location.reload();
+        }
+
+        async function loadSessionData(sid) {
+            showLoading("Загружаем данные номенклатуры и поставщиков из iiko...");
+            try {
+                const response = await fetch(`/api/session/${sid}`, {
+                    headers: { 'Bypass-Tunnel-Reminder': 'true' }
+                });
+                appData = await response.json();
+                renderReviewScreen();
+            } catch (e) {
+                document.getElementById('app').innerHTML = `<div class="card loading" style="color: red;">Ошибка загрузки данных: ${e.message}</div>`;
+            }
+        }
+
+        // Если передан session_id в URL при открытии, сразу грузим его
+        if (sessionId) {
+            loadSessionData(sessionId);
+        }
+
+        function renderReviewScreen() {
+            const container = document.getElementById('app');
+            const suppliersOptions = appData.suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            const storesOptions = appData.stores.map(st => `<option value="${st.id}" selected>${st.name}</option>`).join('');
+
+            let itemsHtml = '';
+            appData.items.forEach((item, index) => {
+                const raw = item.raw;
+                const suggestion = item.suggestion;
+                const total = (raw.quantity * raw.price).toFixed(2);
+                
+                const hasError = !suggestion || !suggestion.iiko_id;
+                const errorHtml = hasError ? `<div class="item-error">⚠️ Позиция не найдена в iiko или требует проверки</div>` : '';
+                const borderClass = hasError ? 'error-border' : '';
+
+                const selectOptions = appData.products.map(p => 
+                    `<option value="${p.id}" ${suggestion && suggestion.iiko_id === p.id ? 'selected' : ''}>${p.name}</option>`
+                ).join('');
+
+                itemsHtml += `
+                    <div class="item-row" data-index="${index}">
+                        <div class="item-header">
+                            <span class="item-name">${raw.name}</span>
+                            <span class="item-calc">${raw.quantity} ${raw.unit} × ${raw.price} = <span class="row-total">${total}</span> ₽</span>
+                        </div>
+                        ${errorHtml}
+                        <div class="item-details">
+                            <select class="product-select ${borderClass}" data-index="${index}" onchange="checkMatch(this)">
+                                <option value="">-- Выберите товар в iiko --</option>
+                                ${selectOptions}
+                            </select>
+                            <input type="number" step="any" class="qty-input" data-index="${index}" value="${raw.quantity}">
+                            <input type="number" step="any" class="price-input" data-index="${index}" value="${raw.price}">
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = `
+                <div class="card">
+                    <h2>Параметры накладной</h2>
+                    <div class="form-group">
+                        <label>Поставщик (из УПД/счета)</label>
+                        <select id="supplier-select">
+                            <option value="">-- Выберите поставщика --</option>
+                            ${suppliersOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Склад назначения</label>
+                        <select id="store-select">
+                            ${storesOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Проверка позиций (${appData.items.length})</h2>
+                    <div id="items-list">
+                        ${itemsHtml}
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <div>
+                        <div style="font-size: 11px; color: var(--hint-color);">Итого:</div>
+                        <div class="total-sum" id="grand-total">0.00 ₽</div>
+                    </div>
+                    <button class="btn-confirm" onclick="submitInvoice()">Подтвердить и отправить в IIKO</button>
+                </div>
+            `;
+
+            setupListeners();
+            calculateTotal();
+        }
+
+        function checkMatch(selectEl) {
+            const idx = selectEl.dataset.index;
+            const row = document.querySelector(`.item-row[data-index="${idx}"]`);
+            const errDiv = row.querySelector('.item-error');
+            
+            if (selectEl.value) {
+                selectEl.classList.remove('error-border');
+                if (errDiv) errDiv.remove();
+            } else {
+                selectEl.classList.add('error-border');
+                if (!errDiv) {
+                    const newErr = document.createElement('div');
+                    newErr.className = 'item-error';
+                    newErr.textContent = '⚠️ Выберите товар из iiko';
+                    row.querySelector('.item-header').after(newErr);
+                }
+            }
+        }
+
+        function setupListeners() {
+            document.querySelectorAll('.qty-input, .price-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = e.target.dataset.index;
+                    const row = document.querySelector(`.item-row[data-index="${idx}"]`);
+                    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+                    const total = (qty * price).toFixed(2);
+                    row.querySelector('.row-total').textContent = total;
+                    calculateTotal();
+                });
+            });
+        }
+
+        function calculateTotal() {
+            let sum = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+                const price = parseFloat(row.querySelector('.price-input').value) || 0;
+                sum += qty * price;
+            });
+            document.getElementById('grand-total').textContent = sum.toFixed(2) + ' ₽';
+        }
+
+        async function submitInvoice() {
+            const supplierId = document.getElementById('supplier-select').value;
+            const storeId = document.getElementById('store-select').value;
+
+            if (!supplierId) {
+                alert('Выберите поставщика!');
+                return;
+            }
+
+            const items = [];
+            let valid = true;
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const idx = row.dataset.index;
+                const raw = appData.items[idx].raw;
+                const productId = row.querySelector('.product-select').value;
+                const qty = parseFloat(row.querySelector('.qty-input').value);
+                const price = parseFloat(row.querySelector('.price-input').value);
+
+                if (!productId) {
+                    valid = false;
+                    row.querySelector('.product-select').classList.add('error-border');
+                }
+
+                items.push({
+                    name: raw.name,
+                    quantity: qty,
+                    unit: raw.unit,
+                    price: price,
+                    iiko_product_id: productId
+                });
+            });
+
+            if (!valid) {
+                alert('Пожалуйста, исправьте подсвеченные ошибки: для всех позиций должен быть выбран товар в iiko!');
+                return;
+            }
+
+            tg.MainButton.showProgress();
+
+            try {
+                const response = await fetch('/api/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Bypass-Tunnel-Reminder': 'true'
+                    },
+                    body: JSON.stringify({
+                        session_id: parseInt(sessionId || 123),
+                        store_id: storeId,
+                        supplier_id: supplierId,
+                        items: items
+                    })
+                });
+
+                const res = await response.json();
+                if (response.ok) {
+                    tg.showAlert('Накладная успешно подтверждена и отправлена в IIKO!', () => {
+                        tg.close();
+                    });
+                } else {
+                    alert('Ошибка: ' + (res.detail || 'Не удалось отправить'));
+                }
+            } catch (e) {
+                alert('Ошибка сети: ' + e.message);
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+    </script>
+</body>
+</html>

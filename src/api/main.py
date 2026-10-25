@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -35,6 +35,13 @@ session_counter = 100
 # Монтируем статику
 os.makedirs("src/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
 
 @app.get("/", response_class=HTMLResponse)
 async def root():

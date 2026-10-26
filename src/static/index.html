@@ -262,6 +262,7 @@
         let sessionId = urlParams.get('session_id');
 
         let appData = null;
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '' : 'https://iiko-receipt-bot.onrender.com';
 
         function triggerCamera() {
             document.getElementById('cameraInput').click();
@@ -302,7 +303,7 @@
             formData.append("file", file);
 
             try {
-                const response = await fetch('/api/upload', {
+                const response = await fetch(API_BASE_URL + '/api/upload', {
                     method: 'POST',
                     headers: { 'Bypass-Tunnel-Reminder': 'true' },
                     body: formData
@@ -338,7 +339,7 @@
         async function loadSessionData(sid) {
             showLoading("Загружаем данные номенклатуры и поставщиков из iiko...");
             try {
-                const response = await fetch(`/api/session/${sid}`, {
+                const response = await fetch(API_BASE_URL + `/api/session/${sid}`, {
                     headers: { 'Bypass-Tunnel-Reminder': 'true' }
                 });
                 appData = await safeParseJSON(response);
@@ -516,7 +517,7 @@
             tg.MainButton.showProgress();
 
             try {
-                const response = await fetch('/api/confirm', {
+                const response = await fetch(API_BASE_URL + '/api/confirm', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

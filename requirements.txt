@@ -13,3 +13,4 @@ thefuzz
 python-levenshtein
 pyzbar
 pillow
+pdf2image

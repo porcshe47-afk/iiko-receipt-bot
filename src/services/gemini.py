@@ -1,10 +1,35 @@
 import google.generativeai as genai
-import PIL.Image
+from PIL import Image, ImageOps
+from pdf2image import convert_from_path
 import json
 import logging
+import os
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+def prepare_image_or_pdf(file_path: str):
+    """
+    Универсальная функция: определяет тип файла, 
+    исправляет ориентацию изображений и конвертирует PDF в список картинок.
+    """
+    file_extension = os.path.splitext(file_path)[1].lower()
+    processed_images = []
+
+    if file_extension == '.pdf':
+        # Конвертируем страницы PDF в изображения для ИИ
+        images = convert_from_path(file_path)
+        for img in images:
+            # Исправляем ориентацию при необходимости
+            img = ImageOps.exif_transpose(img)
+            processed_images.append(img)
+    else:
+        # Открываем картинку и исправляем ориентацию (если фото перевернуто)
+        img = Image.open(file_path)
+        img = ImageOps.exif_transpose(img)
+        processed_images.append(img)
+
+    return processed_images
 
 class GeminiService:
     def __init__(self, api_key: str):
@@ -12,7 +37,7 @@ class GeminiService:
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     async def recognize_invoice(self, image_path: str) -> Dict[str, Any]:
-        img = PIL.Image.open(image_path)
+        processed_images = prepare_image_or_pdf(image_path)
         
         prompt = """
         Распознай накладную (УПД или ТОРГ-12) или кассовый чек на изображении.
@@ -33,7 +58,8 @@ class GeminiService:
         Ответ должен содержать ТОЛЬКО JSON, без markdown разметки.
         """
         
-        response = await self.model.generate_content_async([prompt, img])
+        contents = [prompt] + processed_images
+        response = await self.model.generate_content_async(contents)
         
         try:
             # Чистим ответ от возможных markdown блоков ```json ... ```

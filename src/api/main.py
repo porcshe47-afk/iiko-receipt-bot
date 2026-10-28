@@ -10,8 +10,21 @@ from ..services.gemini import GeminiService
 from .auth import get_current_user
 import os
 import shutil
+import logging
+import asyncio
+from ..bot.main import main as run_bot
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="iiko Receipt Bot API")
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        asyncio.create_task(run_bot())
+        logger.info("Telegram bot started in background successfully.")
+    except Exception as e:
+        logger.error(f"Failed to start bot in background: {e}")
 
 app.add_middleware(
     CORSMiddleware,

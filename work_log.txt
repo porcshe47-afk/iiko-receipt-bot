@@ -1,0 +1,40 @@
+================================================================================
+IIKO RECEIPT BOT - WORK LOG & MIGRATION REPORT
+Date: October 28, 2026
+Project: Telegram Mini App & Bot for iiko document recognition and reconciliation
+================================================================================
+
+1. FIXING FRONTEND & BACKEND JSON PARSING (Error: "The string did not match the expected pattern")
+- Issue: When the server or proxy returned an HTML error page (e.g. 500/502/504), `response.json()` on iOS Safari/WebKit threw "The string did not match the expected pattern".
+- Solution:
+  - Created a robust `safeParseJSON` helper function in `src/static/index.html` that reads response text and safely validates whether it's JSON or HTML/plain text error.
+  - Added a global exception handler (`global_exception_handler`) in `src/api/main.py` ensuring FastAPI always returns JSON (`{"detail": "..."}`) on unhandled server errors instead of HTML tracebacks.
+
+2. CLOUDFLARE PAGES MIGRATION & API ROUTING (Error: Status 405 Method Not Allowed)
+- Issue: After migrating frontend static files to Cloudflare Pages (`https://iiko-receipt-bot.pages.dev`), relative fetch requests (`/api/upload`) hit static hosting instead of the Python backend, resulting in 405 Method Not Allowed.
+- Solution:
+  - Configured `API_BASE_URL` in `src/static/index.html` pointing dynamically to the Render backend (`https://iiko-receipt-bot.onrender.com`) for production and relative paths for local development.
+
+3. PDF SUPPORT & EXIF IMAGE ORIENTATION FIX
+- Issue: Users uploading PDF documents (e.g., UPDF invoices) or rotated photos encountered parsing or orientation issues.
+- Solution:
+  - Implemented `prepare_image_or_pdf` in `src/services/gemini.py`.
+  - Integrated **PyMuPDF (`pymupdf`)** with fallback to `pdf2image` for pure-Python robust PDF-to-image conversion.
+  - Added EXIF orientation correction (`ImageOps.exif_transpose`) for all uploaded images.
+  - Updated `requirements.txt` with `pymupdf` and `pdf2image`.
+
+4. DIAGNOSIS & RESOLUTION OF "Load failed" / 502 BAD GATEWAY (Render Cold Start & Bot Integration)
+- Issue: Render free-tier instance enters "sleep" mode after inactivity, causing cold starts (30-60s) and 502 Bad Gateway / "Load failed" errors in iOS Safari. Furthermore, running long-polling bot separately from the web service caused deployment conflicts.
+- Solution:
+  - Added a lightweight `/api/health` health-check endpoint in `src/api/main.py`.
+  - Added client-side server wakeup ping on frontend before file upload.
+  - Configured FastAPI `startup_event` in `src/api/main.py` to start the Telegram bot in a background task (`asyncio.create_task`), allowing a single Render Web Service instance to simultaneously serve the Mini App API and run Telegram bot polling.
+
+================================================================================
+SUMMARY OF MODIFIED FILES:
+- `README.md`
+- `src/api/main.py`
+- `src/services/gemini.py`
+- `src/static/index.html`
+- `requirements.txt`
+================================================================================

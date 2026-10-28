@@ -1,6 +1,5 @@
 import google.generativeai as genai
 from PIL import Image, ImageOps
-from pdf2image import convert_from_path
 import json
 import logging
 import os
@@ -11,18 +10,32 @@ logger = logging.getLogger(__name__)
 def prepare_image_or_pdf(file_path: str):
     """
     Универсальная функция: определяет тип файла, 
-    исправляет ориентацию изображений и конвертирует PDF в список картинок.
+    исправляет ориентацию изображений и конвертирует PDF в список картинок (PyMuPDF с fallback на pdf2image).
     """
     file_extension = os.path.splitext(file_path)[1].lower()
     processed_images = []
 
     if file_extension == '.pdf':
-        # Конвертируем страницы PDF в изображения для ИИ
-        images = convert_from_path(file_path)
-        for img in images:
-            # Исправляем ориентацию при необходимости
-            img = ImageOps.exif_transpose(img)
-            processed_images.append(img)
+        try:
+            import fitz  # PyMuPDF
+            doc = fitz.open(file_path)
+            for page in doc:
+                pix = page.get_pixmap(dpi=150)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                img = ImageOps.exif_transpose(img)
+                processed_images.append(img)
+            doc.close()
+        except Exception as e:
+            logger.warning(f"PyMuPDF failed, falling back to pdf2image: {e}")
+            try:
+                from pdf2image import convert_from_path
+                images = convert_from_path(file_path)
+                for img in images:
+                    img = ImageOps.exif_transpose(img)
+                    processed_images.append(img)
+            except Exception as e2:
+                logger.error(f"Both PyMuPDF and pdf2image failed to convert PDF: {e2}")
+                raise ValueError(f"Не удалось конвертировать PDF файл: {e2}")
     else:
         # Открываем картинку и исправляем ориентацию (если фото перевернуто)
         img = Image.open(file_path)

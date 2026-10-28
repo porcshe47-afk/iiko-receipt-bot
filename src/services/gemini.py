@@ -17,8 +17,8 @@ def prepare_image_or_pdf(file_path: str):
 
     if file_extension == '.pdf':
         try:
-            import fitz  # PyMuPDF
-            doc = fitz.open(file_path)
+            import pymupdf
+            doc = pymupdf.open(file_path)
             for page in doc:
                 pix = page.get_pixmap(dpi=150)
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)

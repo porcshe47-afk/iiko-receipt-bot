@@ -18,13 +18,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="iiko Receipt Bot API")
 
+async def safe_run_bot():
+    try:
+        await run_bot()
+    except Exception as e:
+        logger.error(f"Telegram bot polling error (Please verify your BOT_TOKEN in Render environment variables): {e}")
+
 @app.on_event("startup")
 async def startup_event():
-    try:
-        asyncio.create_task(run_bot())
-        logger.info("Telegram bot started in background successfully.")
-    except Exception as e:
-        logger.error(f"Failed to start bot in background: {e}")
+    asyncio.create_task(safe_run_bot())
+    logger.info("Telegram bot background task scheduled.")
 
 app.add_middleware(
     CORSMiddleware,

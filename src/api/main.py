@@ -43,6 +43,10 @@ async def global_exception_handler(request, exc):
         content={"detail": str(exc)},
     )
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok"}
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return RedirectResponse(url="/webapp")

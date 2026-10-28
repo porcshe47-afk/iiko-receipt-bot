@@ -297,12 +297,20 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            showLoading("Распознаем документ с помощью ИИ и сверяем с iiko...");
+            showLoading("Подключаемся к серверу...");
 
             const formData = new FormData();
             formData.append("file", file);
 
             try {
+                try {
+                    await fetch(API_BASE_URL + '/api/health', { method: 'GET', signal: AbortSignal.timeout(15000) });
+                } catch (err) {
+                    // Ignore health check failure and proceed to upload
+                }
+
+                showLoading("Распознаем документ с помощью ИИ и сверяем с iiko...");
+
                 const response = await fetch(API_BASE_URL + '/api/upload', {
                     method: 'POST',
                     headers: { 'Bypass-Tunnel-Reminder': 'true' },
@@ -318,7 +326,7 @@
                     resetToUploadScreen();
                 }
             } catch (e) {
-                alert('Ошибка сети или сервера: ' + e.message);
+                alert('Ошибка сети или сервера (Load failed): ' + e.message + '\n\nВероятно, бесплатный сервер на Render просыпается после спячки. Пожалуйста, подождите 30 секунд и попробуйте снова.');
                 resetToUploadScreen();
             }
         }
